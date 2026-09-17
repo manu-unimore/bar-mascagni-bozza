@@ -1,0 +1,6 @@
+# Si pubblica solo il sito: brief, workflow e note interne restano in locale
+*
+!.gitignore
+!index.html
+!styles.css
+!script.js
