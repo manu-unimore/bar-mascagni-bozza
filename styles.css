@@ -97,12 +97,12 @@ main:focus { outline: none; box-shadow: none; }
 .flap .b, .flap .fb { background: #242A30; }
 .flap::after { content: ""; position: absolute; left: 0; right: 0; top: calc(50% - .5px); height: 1px; background: #05080B; }
 .flap .fb { transform: rotateX(90deg); }
-.flap.go .ft { animation: flap-top .22s ease-in var(--delay, 0s) forwards; }
-.flap.go .fb { animation: flap-bottom .22s ease-out calc(var(--delay, 0s) + .22s) forwards; }
+.flap.go .ft { animation: flap-top var(--dur, .22s) ease-in var(--delay, 0s) forwards; }
+.flap.go .fb { animation: flap-bottom var(--dur, .22s) ease-out calc(var(--delay, 0s) + var(--dur, .22s)) forwards; }
 @keyframes flap-top { to { transform: rotateX(-90deg); } }
 @keyframes flap-bottom { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
 
-/* ---------- Versione piatta (default senza JS, ?piatto, reduced motion) ---------- */
+/* ---------- Versione piatta (senza JS o con ?piatto) ---------- */
 html:not(.is-3d) .hud {
   position: sticky; top: 0; z-index: 20;
   display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.5rem;
@@ -156,8 +156,6 @@ address a { color: var(--accent); font-weight: 600; }
 .is-3d .spacer { width: 1px; }
 .is-3d .stage {
   position: fixed; inset: 0; overflow: hidden;
-  perspective: 1000px;
-  perspective-origin: 50% 50%;
 }
 .is-3d .skies { position: absolute; inset: 0; }
 .is-3d .sky {
@@ -169,7 +167,8 @@ address a { color: var(--accent); font-weight: 600; }
   will-change: opacity;
 }
 .is-3d .sky:first-child { opacity: 1; }
-.is-3d .world { position: absolute; inset: 0; transform-style: preserve-3d; }
+/* prospettiva calcolata in JS (uguale su Safari iPhone); il mondo non intercetta i clic */
+.is-3d .world { position: absolute; inset: 0; pointer-events: none; }
 .is-3d .ch { display: contents; }
 .is-3d .ora { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .is-3d .plane {
@@ -178,7 +177,6 @@ address a { color: var(--accent); font-weight: 600; }
   opacity: 0;
   pointer-events: none;
   will-change: transform, opacity;
-  backface-visibility: hidden;
 }
 .is-3d .plane * { pointer-events: none; }
 .is-3d .plane.is-live, .is-3d .plane.is-live * { pointer-events: auto; }
@@ -255,4 +253,139 @@ address a { color: var(--accent); font-weight: 600; }
   html:not(.is-3d) .index { overflow-x: auto; }
   html:not(.is-3d) .index ol { flex-wrap: nowrap; white-space: nowrap; }
   html:not(.is-3d) .ch { scroll-margin-top: 6rem; }
+}
+
+/* ====================== Rifiniture (porting da Rebucci) ====================== */
+
+/* Il riquadro del testo lascia passare i tocchi: cliccabili solo titoli, link e bottoni */
+.is-3d .plane.copy.is-live, .is-3d .plane.copy.is-live * { pointer-events: none; }
+.is-3d .plane.copy.is-live :is(a, button, h1, h2) { pointer-events: auto; }
+.is-3d .copy.center .items { justify-content: center; }
+
+/* HUD leggibile quando una foto gli passa dietro */
+.is-3d .brand, .is-3d .index a {
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--sky-a) 90%, transparent), 0 0 3px color-mix(in srgb, var(--sky-a) 70%, transparent);
+}
+
+/* Fine corsa: niente rimbalzo nero, il fondo prende il colore del capitolo */
+html.is-3d, html.is-3d body { overscroll-behavior: none; }
+html.is-3d, html.is-3d body { background: var(--sky-b); transition: background-color .6s ease; }
+
+/* Barra di avanzamento */
+.avanzamento { display: none; }
+.is-3d .hud > .avanzamento {
+  display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: color-mix(in srgb, var(--ink) 14%, transparent); pointer-events: none;
+}
+.avanzamento i { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; }
+
+/* Versione animata / semplice: ognuna offre l'altra */
+.semplice, .animata { margin: .8rem 0 0; font-size: .85rem; }
+.semplice a, .animata a { color: var(--soft); }
+html:not(.is-3d) .semplice, .animata { display: none; }
+html:not(.is-3d) .animata { display: block; }
+
+/* ---------- Foto in primo piano ---------- */
+.zoom { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; color: inherit; font: inherit; }
+.luce { border: 0; padding: 0; background: transparent; color: #F3EEE2; max-width: min(92vw, 70rem); max-height: 92dvh; overflow: visible; }
+.luce::backdrop { background: rgba(5, 13, 22, .88); backdrop-filter: blur(6px); }
+.luce img { display: block; max-width: 100%; max-height: 78dvh; width: auto; margin: 0 auto; box-shadow: 0 2rem 5rem rgba(0, 0, 0, .5); }
+.luce-testo { margin: .9rem 0 0; text-align: center; font-weight: 600; }
+.luce-chiudi { position: absolute; top: -3.4rem; right: 0; --ink: #F3EEE2; --sky-a: #050D16; padding: .6em 1em; }
+.luce[open] { animation: luce-in .35s cubic-bezier(.2, .8, .2, 1); }
+@keyframes luce-in { from { opacity: 0; transform: scale(.94); } }
+html:has(.luce[open]) { overflow: hidden; }
+
+/* ---------- Luce del cursore (solo puntatore fine) ---------- */
+@property --mx { syntax: "<number>"; inherits: true; initial-value: .3; }
+@property --my { syntax: "<number>"; inherits: true; initial-value: .25; }
+.is-3d .zoom { position: relative; }
+@media (hover: hover) and (pointer: fine) {
+  .is-3d .zoom::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(45% 45% at calc(var(--mx) * 100%) calc(var(--my) * 100%), rgba(255, 255, 255, .28), transparent 70%);
+    mix-blend-mode: overlay;
+  }
+}
+
+/* ---------- Vetro appannato tra un'ora e l'altra ---------- */
+html:not(.is-3d) :is(.velo, .ingresso, .chiusura) { display: none; }
+.is-3d .velo {
+  position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0; visibility: hidden;
+  -webkit-backdrop-filter: blur(12px) saturate(.85); backdrop-filter: blur(12px) saturate(.85);
+  background: radial-gradient(120% 100% at 50% 50%, rgba(230, 240, 245, .06), rgba(230, 240, 245, .16));
+}
+
+/* ---------- Insegna sul vetro d'ingresso e in chiusura ---------- */
+.is-3d .ingresso {
+  position: fixed; inset: 0; z-index: 8; pointer-events: none;
+  display: grid; place-content: center; justify-items: center; gap: .6rem; text-align: center;
+  padding: 0 var(--gutter);
+  background:
+    linear-gradient(115deg, transparent 18%, rgba(255, 255, 255, .07) 24%, transparent 31%, transparent 57%, rgba(255, 255, 255, .05) 61%, transparent 66%),
+    radial-gradient(120% 90% at 50% 42%, rgba(13, 27, 46, .8), rgba(5, 13, 22, .95));
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  transform-origin: 50% 45%;
+}
+.insegna {
+  margin: 0; font-family: var(--f-display); font-variation-settings: "wdth" 82; font-weight: 760;
+  font-size: clamp(3.4rem, 15vw, 13rem); line-height: .9; letter-spacing: -.02em; color: #F4C27F;
+  text-shadow: 0 0 .35em rgba(244, 194, 127, .45), 0 .08em 0 rgba(40, 24, 6, .6);
+}
+.insegna-sub { margin: 0; color: #EEF3F8; letter-spacing: .3em; text-transform: uppercase; font-size: clamp(.65rem, 1.6vw, .85rem); }
+.insegna-hint { margin: 1.6rem 0 0; color: rgba(238, 243, 248, .78); font-size: .95rem; }
+.is-3d .chiusura {
+  position: fixed; inset: 0; z-index: 8; pointer-events: none;
+  display: grid; place-content: center; justify-items: center; gap: .5rem; text-align: center;
+  padding: 0 var(--gutter);
+  background: radial-gradient(90% 80% at 50% 50%, rgba(5, 13, 22, .95), rgba(5, 13, 22, .82));
+  opacity: 0; visibility: hidden;
+  transition: opacity .8s ease, visibility 0s linear .8s;
+}
+.is-3d .chiusura .insegna { color: #8FD0DE; text-shadow: 0 0 .35em rgba(143, 208, 222, .45); font-size: clamp(3rem, 12vw, 9rem); transform: scale(1.06); transition: transform 2.6s cubic-bezier(.2, .8, .2, 1); }
+.is-3d .chiusura.on { opacity: 1; visibility: visible; transition: opacity .6s ease; }
+.is-3d .chiusura.on .insegna { transform: scale(1); }
+.is-3d .chiusura .insegna-sub { color: #E6F0F5; }
+
+/* ---------- Mappa di "visita" (dati © OpenStreetMap) ---------- */
+.mappa { background: #0A1826; border: 2px solid #3F7C8C; padding: clamp(.45rem, 1vw, .8rem); box-shadow: 0 1.4rem 3rem rgba(0, 0, 0, .35); }
+.is-3d .mappa { width: min(34vw, 30rem); }
+.mappa-link { display: block; }
+.mappa-svg { display: block; width: 100%; height: auto; aspect-ratio: 1; background: #07111C; }
+.mappa-link:hover .mappa-svg, .mappa-link:focus-visible .mappa-svg { opacity: .88; }
+.mappa-zoom { transform: scale(var(--zoom, 1)); transform-box: view-box; transform-origin: 500px 500px; }
+.m-edifici { fill: #132536; }
+.m-verde { fill: rgba(63, 124, 140, .16); }
+.m-servizio, .m-via, .m-via-media, .m-via-grande, .m-emilia, .m-ferrovia { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.m-servizio { stroke: rgba(143, 208, 222, .22); stroke-width: 1; }
+.m-via { stroke: rgba(169, 191, 203, .5); stroke-width: 1.6; }
+.m-via-media { stroke: rgba(169, 191, 203, .72); stroke-width: 2.4; }
+.m-via-grande { stroke: #A9BFCB; stroke-width: 3; }
+.m-ferrovia { stroke: rgba(169, 191, 203, .45); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.m-emilia { stroke: #8FD0DE; stroke-width: 5; }
+.m-emilia-nome { fill: #8FD0DE; font: 600 calc(30px / var(--zoom, 1)) var(--f-body); letter-spacing: .08em; paint-order: stroke; stroke: #07111C; stroke-width: calc(8px / var(--zoom, 1)); }
+.m-etichetta { fill: #E6F0F5; font: 600 calc(30px / var(--zoom, 1)) var(--f-body); paint-order: stroke; stroke: #07111C; stroke-width: calc(8px / var(--zoom, 1)); }
+.m-pin circle { fill: #F4C27F; }
+.m-pin .m-bordo { fill: #07111C; }
+.m-pin .m-alone { fill: rgba(143, 208, 222, .18); stroke: #8FD0DE; stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: pin 2.4s ease-out infinite; }
+@keyframes pin { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+.m-credito { fill: rgba(230, 240, 245, .65); font: 400 22px var(--f-body); }
+.torna { margin: 0 0 .6rem; }
+@media (max-width: 760px) { .is-3d .mappa { width: 62vw; } }
+@media (max-width: 760px) and (max-height: 700px) { .is-3d .mappa { width: 40vw; } }
+
+/* ---------- Riduci movimento: profondità sì, effetti mossi no ---------- */
+.calmo :is(.ingresso, .velo, .chiusura) { display: none; }
+.calmo .hint-line, .calmo .m-pin .m-alone { animation: none; }
+.calmo .zoom::after { display: none; }
+
+/* ---------- Dispositivi touch: niente animazioni continue né sfocature a tutto schermo ---------- */
+@media (hover: none) and (pointer: coarse) {
+  .hint-line { animation: none; transform: none; }
+  .m-pin .m-alone { animation-iteration-count: 3; }
+  .is-3d .velo { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(5, 13, 22, .38); }
+  .is-3d .ingresso { -webkit-backdrop-filter: none; backdrop-filter: none; background:
+    linear-gradient(115deg, transparent 18%, rgba(255, 255, 255, .06) 24%, transparent 31%),
+    radial-gradient(120% 90% at 50% 42%, rgba(13, 27, 46, .93), rgba(5, 13, 22, .98)); }
+  .luce::backdrop { backdrop-filter: none; background: rgba(5, 13, 22, .94); }
 }
